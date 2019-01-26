@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -11,22 +12,16 @@ import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.wix.reactnativenotifications.core.AppLaunchHelper;
-import com.wix.reactnativenotifications.core.AppLifecycleFacade;
-import com.wix.reactnativenotifications.core.InitialNotificationHolder;
-import com.wix.reactnativenotifications.core.JsIOHelper;
-import com.wix.reactnativenotifications.core.ProxyService;
-import com.wix.reactnativenotifications.core.notification.PushNotification;
 import com.zulipmobile.BuildConfig;
+import com.zulipmobile.notifications.NotificationHelper.ConversationMap;
 import com.zulipmobile.R;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 
 import me.leolin.shortcutbadger.ShortcutBadger;
@@ -39,109 +34,84 @@ import static com.zulipmobile.notifications.NotificationHelper.addConversationTo
 import static com.zulipmobile.notifications.NotificationHelper.removeMessageFromMap;
 import static com.zulipmobile.notifications.NotificationHelper.TAG;
 
-public class GCMPushNotifications extends PushNotification {
+public class GCMPushNotifications {
 
-    public static final String CHANNEL_ID = "default";
-    public static final int NOTIFICATION_ID = 435;
-    public static final String ACTION_NOTIFICATIONS_DISMISS = "ACTION_NOTIFICATIONS_DISMISS";
+    private static final String CHANNEL_ID = "default";
+    private static final int NOTIFICATION_ID = 435;
+    static final String ACTION_CLEAR = "ACTION_CLEAR";
+    static final String EXTRA_NOTIFICATION_DATA = "data";
 
-    /**
-     * The Zulip messages we're showing as a notification, grouped by conversation.
-     *
-     * Each key identifies a conversation; see @{link buildKeyString}.
-     *
-     * Each value is the messages in the conversation, in the order we
-     * received them.
-     */
-    private LinkedHashMap<String, List<MessageInfo>> conversations;
-
-    /**
-     * Same as {@link com.wix.reactnativenotifications.core.NotificationIntentAdapter#PUSH_NOTIFICATION_EXTRA_NAME}
-     */
-    private static final String PUSH_NOTIFICATION_EXTRA_NAME = "pushNotification";
+    private static NotificationManager getNotificationManager(Context context) {
+        return (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+    }
 
     public static void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= 26) {
             CharSequence name = context.getString(R.string.notification_channel_name);
             int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+            getNotificationManager(context).createNotificationChannel(channel);
         }
     }
 
-    public GCMPushNotifications(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade, AppLaunchHelper appLaunchHelper, JsIOHelper jsIoHelper, LinkedHashMap<String, List<MessageInfo>> conversations) {
-        super(context, bundle, appLifecycleFacade, appLaunchHelper, jsIoHelper);
-        this.conversations = conversations;
+    private static void logNotificationData(Bundle data) {
+        data.keySet(); // Has the side effect of making `data.toString` more informative.
+        Log.v(TAG, "getPushNotification: " + data.toString(), new Throwable());
     }
 
-    @Override
-    protected PushNotificationsProp createProps(Bundle bundle) {
-        return new PushNotificationsProp(bundle);
+    static void onReceived(Context context, ConversationMap conversations, Bundle data) {
+        logNotificationData(data);
+        final PushNotificationsProp props = new PushNotificationsProp(data);
+        final String eventType = props.getEvent();
+        switch (eventType) {
+          case "message":
+            addConversationToMap(props, conversations);
+            updateNotification(context, conversations, props);
+            break;
+          case "remove":
+            removeMessageFromMap(props, conversations);
+            if (conversations.isEmpty()) {
+                getNotificationManager(context).cancelAll();
+            }
+            break;
+          default:
+            Log.w(TAG, "Ignoring GCM message of unknown event type: " + eventType);
+            break;
+        }
     }
 
-    protected PushNotificationsProp getProps() {
-        return (PushNotificationsProp) mNotificationProps;
-    }
-
-    private NotificationManager getNotificationManager() {
-        return (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-    }
-
-    private void updateNotification() {
+    private static void updateNotification(
+            Context context, ConversationMap conversations, PushNotificationsProp props) {
         if (conversations.isEmpty()) {
-            getNotificationManager().cancelAll();
+            getNotificationManager(context).cancelAll();
             return;
         }
-        final PendingIntent intent = getCTAPendingIntent();
-        final Notification notification = getNotificationBuilder(intent).build();
-        final int notificationId = createNotificationId(notification);
-        getNotificationManager().notify(notificationId, notification);
+        final Notification notification = getNotificationBuilder(context, conversations, props).build();
+        getNotificationManager(context).notify(NOTIFICATION_ID, notification);
     }
 
-    @Override
-    public void onReceived() throws InvalidNotificationException {
-        final String eventType = getProps().getEvent();
-        if (eventType.equals("message")) {
-            addConversationToMap(getProps(), conversations);
-            updateNotification();
-        } else if (eventType.equals("remove")) {
-            removeMessageFromMap(getProps(), conversations);
-            if (conversations.isEmpty()) {
-                getNotificationManager().cancelAll();
-            }
-        } else {
-            Log.w(TAG, "Ignoring GCM message of unknown event type: " + eventType);
-        }
+    private static Uri getNotificationSoundUri(Context context) {
+        // Note: Provide default notification sound until we found a good sound
+        // return Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE +"://" + context.getPackageName() + "/" + R.raw.zulip);
+        return Settings.System.DEFAULT_NOTIFICATION_URI;
     }
 
-    @Override
-    public void onOpened() {
-        try {
-            InitialNotificationHolder.getInstance().set(getProps());
-        } catch (Exception e) {
-            Log.e(TAG, "PendingNotif error: " + e.toString());
-        }
-        super.onOpened();
-        clearConversations(conversations);
-        try {
-            ShortcutBadger.removeCount(mContext);
-        } catch (Exception e) {
-            Log.e(TAG, "BADGE ERROR: " + e.toString());
-        }
-    }
-
-    @Override
-    protected Notification.Builder getNotificationBuilder(PendingIntent intent) {
+    private static Notification.Builder getNotificationBuilder(
+            Context context, ConversationMap conversations, PushNotificationsProp props) {
         final Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ?
-                new Notification.Builder(mContext, CHANNEL_ID)
-                : new Notification.Builder(mContext);
+                new Notification.Builder(context, CHANNEL_ID)
+                : new Notification.Builder(context);
 
-        builder.setContentIntent(intent)
-                .setDefaults(Notification.DEFAULT_ALL)
-                .setAutoCancel(true);
+        final int messageId = props.getZulipMessageId();
+        final Uri uri = Uri.fromParts("zulip", "msgid:" + Integer.toString(messageId), "");
+        final Intent viewIntent = new Intent(Intent.ACTION_VIEW, uri, context, NotificationIntentService.class);
+        viewIntent.putExtra(EXTRA_NOTIFICATION_DATA, props.asBundle());
+        final PendingIntent viewPendingIntent =
+                PendingIntent.getService(context, 0, viewIntent, 0);
+        builder.setContentIntent(viewPendingIntent);
 
-        final PushNotificationsProp props = getProps();
+        builder.setAutoCancel(true);
+
         String type = props.getRecipientType();
         String content = props.getContent();
         String senderFullName = props.getSenderFullName();
@@ -167,14 +137,11 @@ public class GCMPushNotifications extends PushNotification {
             }
             builder.setContentText(content);
             if (type.equals("stream")) {
-                if (Build.VERSION.SDK_INT >= 16) {
-                    String displayTopic = stream + " > "
-                            + topic;
-                    builder.setSubText("Message on " + displayTopic);
-                }
+                String displayTopic = stream + " > " + topic;
+                builder.setSubText("Message on " + displayTopic);
             }
             if (avatarURL != null && avatarURL.startsWith("http")) {
-                Bitmap avatar = fetchAvatar(NotificationHelper.sizedURL(mContext,
+                Bitmap avatar = fetchAvatar(NotificationHelper.sizedURL(context,
                         avatarURL, 64, baseURL));
                 if (avatar != null) {
                     builder.setLargeIcon(avatar);
@@ -187,12 +154,12 @@ public class GCMPushNotifications extends PushNotification {
             builder.setContentText("Messages from " + TextUtils.join(",", extractNames(conversations)));
             Notification.InboxStyle inboxStyle = new Notification.InboxStyle(builder);
             inboxStyle.setSummaryText(String.format(Locale.ENGLISH, "%d conversations", conversations.size()));
-            buildNotificationContent(conversations, inboxStyle, mContext);
+            buildNotificationContent(conversations, inboxStyle, context);
             builder.setStyle(inboxStyle);
         }
 
         try {
-            ShortcutBadger.applyCount(mContext, totalMessagesCount);
+            ShortcutBadger.applyCount(context, totalMessagesCount);
         } catch (Exception e) {
             Log.e(TAG, "BADGE ERROR: " + e.toString());
         }
@@ -202,36 +169,33 @@ public class GCMPushNotifications extends PushNotification {
             builder.setWhen(timeMillis);
         }
         long[] vPattern = {0, 100, 200, 100};
+        // NB the DEFAULT_VIBRATE flag below causes this to have no effect.
+        // TODO: choose a vibration pattern we like, and unset DEFAULT_VIBRATE.
         builder.setVibrate(vPattern);
 
-        /**
-         * Ideally, actions are sent using dismissIntent.setAction(String),
-         * But here {@link com.wix.reactnativenotifications.core.NotificationIntentAdapter#extractPendingNotificationDataFromIntent(Intent)}
-         * it checks in the bundle hence, An empty bundle is sent and checked in
-         * {@link com.zulipmobile.MainApplication#getPushNotification} for this string and then dismissed
-         *
-         **/
+        builder.setDefaults(Notification.DEFAULT_VIBRATE
+                | Notification.DEFAULT_LIGHTS);
+
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-            Intent dismissIntent = new Intent(mContext, ProxyService.class);
-            Bundle bundle = new Bundle();
-            bundle.putString(ACTION_NOTIFICATIONS_DISMISS, ACTION_NOTIFICATIONS_DISMISS);
-            dismissIntent.putExtra(PUSH_NOTIFICATION_EXTRA_NAME, bundle);
-            PendingIntent piDismiss = PendingIntent.getService(mContext, 0, dismissIntent, 0);
+            Intent dismissIntent = new Intent(context, NotificationIntentService.class);
+            dismissIntent.setAction(ACTION_CLEAR);
+            PendingIntent piDismiss = PendingIntent.getService(context, 0, dismissIntent, 0);
             Notification.Action action = new Notification.Action(android.R.drawable.ic_menu_close_clear_cancel, "Clear", piDismiss);
             builder.addAction(action);
         }
 
+        final Uri soundUri = getNotificationSoundUri(context);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             AudioAttributes audioAttr = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION).build();
-            builder.setSound(Uri.parse("android.resource://" + mContext.getPackageName() + "/" + R.raw.zulip), audioAttr);
+            builder.setSound(soundUri, audioAttr);
         } else {
-            builder.setSound(Uri.parse("android.resource://" + mContext.getPackageName() + "/" + R.raw.zulip));
+            builder.setSound(soundUri);
         }
         return builder;
     }
 
-    private Bitmap fetchAvatar(URL url) {
+    private static Bitmap fetchAvatar(URL url) {
         try {
             return NotificationHelper.fetch(url);
         } catch (IOException e) {
@@ -240,8 +204,20 @@ public class GCMPushNotifications extends PushNotification {
         return null;
     }
 
-    @Override
-    protected int createNotificationId(Notification notification) {
-        return NOTIFICATION_ID;
+    static void onOpened(Context context, ConversationMap conversations, Bundle data) {
+        logNotificationData(data);
+        NotifyReact.notifyReact(context, data);
+        getNotificationManager(context).cancelAll();
+        clearConversations(conversations);
+        try {
+            ShortcutBadger.removeCount(context);
+        } catch (Exception e) {
+            Log.e(TAG, "BADGE ERROR: " + e.toString());
+        }
+    }
+
+    static void onClear (Context context, ConversationMap conversations) {
+        clearConversations(conversations);
+        getNotificationManager(context).cancelAll();
     }
 }

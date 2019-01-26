@@ -1,26 +1,49 @@
 /* @flow strict-local */
-import type { UtilityStyles } from './utilityStyles';
-import type { ComposeBoxStyles } from './composeBoxStyles';
-import type { NavStyles } from './navStyles';
-import type { MiscStyles } from './miscStyles';
-import utilityStyles from './utilityStyles';
-import composeBoxStyles from './composeBoxStyles';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+
+import type { ThemeName } from '../types';
 import navStyles from './navStyles';
 import miscStyles from './miscStyles';
 
-export type AppStyles = UtilityStyles & ComposeBoxStyles & NavStyles & MiscStyles;
-
-type Props = {|
+export type ThemeColors = {|
   color: string,
   backgroundColor: string,
-  borderColor: string,
   cardColor: string,
   dividerColor: string,
 |};
 
-export default (props: Props) => ({
-  ...utilityStyles,
-  ...composeBoxStyles(props),
-  ...navStyles(props),
-  ...miscStyles(props),
-});
+export type AppStyles = $ReadOnly<{|
+  ...$Call<typeof navStyles, ThemeColors>,
+  ...$Call<typeof miscStyles, ThemeColors>,
+|}>;
+
+export const themeColors: { [string]: ThemeColors } = {
+  night: {
+    color: '#d5d9dd',
+    backgroundColor: '#212D3B',
+    cardColor: '#253547',
+    // Dividers follow Material Design: opacity 12% black or 12% white.
+    // See https://material.io/guidelines/components/dividers.html
+    dividerColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  light: {
+    color: '#333',
+    backgroundColor: 'white',
+    cardColor: '#F8F8F8',
+    // Dividers follow Material Design: opacity 12% black or 12% white.
+    // See https://material.io/guidelines/components/dividers.html
+    dividerColor: 'rgba(0, 0, 0, 0.12)',
+  },
+};
+themeColors.default = themeColors.light;
+
+export const ThemeContext = React.createContext(themeColors.default);
+
+export const stylesFromTheme = (name: ThemeName) => {
+  const colors = themeColors[name];
+  return StyleSheet.create({
+    ...navStyles(colors),
+    ...miscStyles(colors),
+  });
+};

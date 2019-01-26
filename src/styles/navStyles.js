@@ -1,34 +1,8 @@
 /* @flow strict-local */
-import type { Style } from '../types';
-import { BRAND_COLOR, NAVBAR_SIZE } from './';
+import type { ThemeColors } from './theme';
+import { BRAND_COLOR, NAVBAR_SIZE } from './constants';
 
-export type NavStyles = {
-  navBar: Style,
-  navWrapper: Style,
-  titleAvatar: Style,
-  navSubtitle: Style,
-  navTitle: Style,
-  titleStreamWrapper: Style,
-  titleStreamRow: Style,
-  navButtonFrame: Style,
-  navButtonIcon: Style,
-};
-
-type Props = {
-  color: string,
-  backgroundColor: string,
-  borderColor: string,
-};
-
-export default ({ color, backgroundColor, borderColor }: Props) => ({
-  navBar: {
-    backgroundColor,
-    borderColor,
-    flexDirection: 'row',
-    height: NAVBAR_SIZE,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-  },
+export const statics = {
   navWrapper: {
     flex: 1,
     flexDirection: 'row',
@@ -63,5 +37,19 @@ export default ({ color, backgroundColor, borderColor }: Props) => ({
   navButtonIcon: {
     textAlign: 'center',
     fontSize: 26,
+  },
+  navBar: {
+    borderColor: 'rgba(127, 127, 127, 0.25)',
+    flexDirection: 'row',
+    height: NAVBAR_SIZE,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+  },
+};
+
+export default ({ backgroundColor }: ThemeColors) => ({
+  navBar: {
+    ...statics.navBar,
+    backgroundColor,
   },
 });

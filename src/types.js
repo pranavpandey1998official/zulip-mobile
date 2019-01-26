@@ -16,8 +16,11 @@ import type {
   Stream,
   Subscription,
   User,
+  UserPresence,
 } from './api/apiTypes';
 import type { AppStyles } from './styles/theme';
+
+import type { SessionState } from './session/sessionReducers';
 
 export type { ChildrenArray } from 'react';
 export type React$Node = Node; // eslint-disable-line flowtype/type-id-match
@@ -46,7 +49,7 @@ export type InputSelectionType = {|
 |};
 
 /**
- * An identity belonging to this user in some Zulip org, including a secret.
+ * An `Identity`, a secret, and some other per-identity information.
  *
  * At present this consists of just the information the API client library
  * needs in order to talk to the server on the user's behalf, aka `Auth`.
@@ -58,7 +61,19 @@ export type InputSelectionType = {|
  * not required.
  * TODO: move more code that way.
  */
-export type Account = Auth;
+export type Account = {|
+  ...Auth,
+
+  /**
+   * The last device token value the server has definitely heard from us.
+   *
+   * This is `null` until we make a successful request to the server to
+   * tell it the token.
+   *
+   * See the `pushToken` property in `SessionState`, and docs linked there.
+   */
+  ackedPushToken: string | null,
+|};
 
 /**
  * An identity belonging to this user in some Zulip org, with no secrets.
@@ -121,62 +136,6 @@ export type UserGroup = {|
   name: string,
 |};
 
-/** See ClientPresence, and the doc linked there. */
-export type UserStatus = 'active' | 'idle' | 'offline';
-
-/**
- * A user's presence status, summarized across all their clients.
- *
- * For an explanation of the Zulip presence model and how to interpret
- * `status` and `timestamp`, see the subsystem doc:
- *   https://zulip.readthedocs.io/en/latest/subsystems/presence.html
- *
- * For our logic to implement this aggregation, see `getAggregatedPresence`.
- */
-export type PresenceAggregated = {|
-  client: string,
-  status: UserStatus,
-  timestamp: number,
-|};
-
-/**
- * A user's presence status, as reported by a specific client.
- *
- * For an explanation of the Zulip presence model and how to interpret
- * `status` and `timestamp`, see the subsystem doc:
- *   https://zulip.readthedocs.io/en/latest/subsystems/presence.html
- *
- * @prop timestamp - When the server last heard from this client.
- * @prop status - See the presence subsystem doc.
- * @prop client
- * @prop pushable - Legacy; unused.
- */
-export type ClientPresence = {|
-  status: UserStatus,
-  timestamp: number,
-  client: string,
-  /* Indicates if the client can receive push notifications. This property
-   * was intended for showing a user's presence status as "on mobile" if
-   * they are inactive on all devices but can receive push notifications
-   * (see zulip/zulip bd20a756f9). However, this property doesn't seem to be
-   * used anywhere on the web app or the mobile client, and can be
-   * considered legacy.
-   */
-  pushable: boolean,
-|};
-
-/**
- * A user's presence status, including all information from all their clients.
- *
- * @prop aggregated - The summary of all available information, to be used
- *   to display the user's presence status.
- * @prop (client) - The information reported by each of the user's clients.
- */
-export type Presence = {|
-  aggregated: PresenceAggregated,
-  [client: string]: ClientPresence,
-|};
-
 /**
  * Info about how complete our knowledge is of the messages in some narrow.
  *
@@ -200,33 +159,6 @@ export type StreamsState = Stream[];
 
 export type SubscriptionsState = Subscription[];
 
-export type HeartbeatEvent = {|
-  type: 'heartbeat',
-  id: number,
-|};
-
-export type MessageEvent = {|
-  type: 'message',
-  id: number,
-|};
-
-export type PresenceEvent = {|
-  type: 'message',
-  id: number,
-  email: string,
-  presence: { [client: string]: ClientPresence },
-  server_timestamp: number,
-|};
-
-export type UpdateMessageFlagsEvent = {|
-  type: 'update_message_flags',
-  id: number,
-  all: boolean,
-  flag: 'read' | '???',
-  messages: number[],
-  operation: 'add' | '???',
-|};
-
 export type EditMessage = {|
   id: number,
   content: string,
@@ -238,28 +170,6 @@ export type AccountsState = Account[];
 export type Debug = {|
   highlightUnreadMessages: boolean,
   doNotMarkMessagesAsRead: boolean,
-|};
-
-/**
- * Miscellaneous non-persistent state about this run of the app.
- *
- * @prop lastNarrow - the last narrow we navigated to.  If the user is
- *   currently in a chat screen this will also be the "current" narrow,
- *   but they may also be on an associated info screen or have navigated
- *   away entirely.
- */
-export type SessionState = {|
-  eventQueueId: number,
-  editMessage: ?EditMessage,
-  isOnline: boolean,
-  isActive: boolean,
-  isHydrated: boolean,
-  lastNarrow: ?Narrow,
-  needsInitialFetch: boolean,
-  orientation: Orientation,
-  outboxSending: boolean,
-  safeAreaInsets: Dimensions,
-  debug: Debug,
 |};
 
 /**
@@ -339,7 +249,6 @@ export type RealmBot = {|
  * @prop nonActiveUsers - All users in the organization with `is_active`
  *   false; for normal users, this means they or an admin deactivated their
  *   account.  See `User` and the linked documentation.
- * @prop pushToken
  * @prop filters
  * @prop emoji
  * @prop isAdmin
@@ -349,11 +258,6 @@ export type RealmState = {|
   canCreateStreams: boolean,
   crossRealmBots: RealmBot[],
   nonActiveUsers: User[],
-  pushToken: {|
-    token: string,
-    msg: string,
-    result: string,
-  |},
   filters: RealmFilter[],
   emoji: RealmEmojiState,
   isAdmin: boolean,
@@ -467,7 +371,7 @@ export type UserGroupsState = UserGroup[];
  *   presence status.
  */
 export type PresenceState = {|
-  [email: string]: Presence,
+  [email: string]: UserPresence,
 |};
 
 export type OutboxState = Outbox[];
@@ -517,8 +421,6 @@ export type GlobalState = {|
 // the corresponding parameter when used in `createSelector`, and this does.
 export type Selector<TResult> = InputSelector<GlobalState, void, TResult>;
 
-export type MatchResult = Array<string> & { index: number, input: string };
-
 export type GetState = () => GlobalState;
 
 export type PlainDispatch = <A: Action | NavigateAction>(action: A) => A;
@@ -533,10 +435,14 @@ export type LocalizableText = string | { text: string, values?: { [string]: stri
 /**
  * Usually called `_`, and invoked like `_('Message')` -> `'Nachricht'`.
  *
- * Use `context: TranslationContext` in a React component; then in methods,
- * say `const _ = this.context`.
+ * To use, put these two lines at the top of a React component's body:
  *
- * Alternatively, for when `context` is already in use, use `withGetText`
+ *     static contextType = TranslationContext;
+ *     context: GetText;
+ *
+ * and then in methods, say `const _ = this.context`.
+ *
+ * Alternatively, for when `context` is already in use: use `withGetText`
  * and then say `const { _ } = this.props`.
  *
  * @prop intl - The full react-intl API, for more complex situations.
@@ -800,17 +706,19 @@ export type InitialDataUpdateMessageFlags = {|
   },
 |};
 
-export type InitialData = InitialDataBase &
-  InitialDataAlertWords &
-  InitialDataMessage &
-  InitialDataMutedTopics &
-  InitialDataPresence &
-  InitialDataRealm &
-  InitialDataRealmEmoji &
-  InitialDataRealmFilters &
-  InitialDataRealmUser &
-  InitialDataRealmUserGroups &
-  InitialDataSubscription &
-  InitialDataUpdateDisplaySettings &
-  InitialDataUpdateGlobalNotifications &
-  InitialDataUpdateMessageFlags;
+export type InitialData = {|
+  ...InitialDataBase,
+  ...InitialDataAlertWords,
+  ...InitialDataMessage,
+  ...InitialDataMutedTopics,
+  ...InitialDataPresence,
+  ...InitialDataRealm,
+  ...InitialDataRealmEmoji,
+  ...InitialDataRealmFilters,
+  ...InitialDataRealmUser,
+  ...InitialDataRealmUserGroups,
+  ...InitialDataSubscription,
+  ...InitialDataUpdateDisplaySettings,
+  ...InitialDataUpdateGlobalNotifications,
+  ...InitialDataUpdateMessageFlags,
+|};

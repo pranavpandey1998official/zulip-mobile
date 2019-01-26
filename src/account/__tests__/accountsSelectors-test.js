@@ -1,28 +1,88 @@
 import deepFreeze from 'deep-freeze';
 
-import { getAuth } from '../accountsSelectors';
-import { NULL_ACCOUNT } from '../../nullObjects';
+import { getAuth, getPartialAuth, tryGetAuth } from '../accountsSelectors';
 
-test('getAuth returns an empty object when no accounts', () => {
-  const state = deepFreeze({
-    accounts: [],
+describe('tryGetAuth', () => {
+  test('returns undefined when no accounts', () => {
+    const state = deepFreeze({
+      accounts: [],
+    });
+
+    const auth = tryGetAuth(state);
+
+    expect(auth).toBe(undefined);
   });
 
-  const auth = getAuth(state);
+  test('returns undefined when no API key on active account', () => {
+    const state = deepFreeze({
+      accounts: [
+        { apiKey: '', realm: 'https://realm1.com' },
+        { apiKey: 'asdf', realm: 'https://realm2.com' },
+      ],
+    });
 
-  expect(auth).toBe(NULL_ACCOUNT);
+    expect(tryGetAuth(state)).toBe(undefined);
+  });
+
+  test('returns the auth information from the first account, if valid', () => {
+    const state = deepFreeze({
+      accounts: [
+        { apiKey: 'asdf', realm: 'https://realm1.com' },
+        { apiKey: 'aoeu', realm: 'https://realm2.com' },
+      ],
+    });
+
+    expect(tryGetAuth(state)).toEqual({
+      realm: 'https://realm1.com',
+      apiKey: 'asdf',
+    });
+  });
 });
 
-test('getAuth returns the auth information from the first account', () => {
-  const state = deepFreeze({
-    accounts: [{ realm: 'https://realm1.com' }, { realm: 'https://realm2.com' }],
+describe('getPartialAuth', () => {
+  test('throws when no accounts', () => {
+    const state = deepFreeze({
+      accounts: [],
+    });
+
+    expect(() => {
+      getPartialAuth(state);
+    }).toThrow();
   });
 
-  const auth = getAuth(state);
+  test('returns first account even when no API key', () => {
+    const state = deepFreeze({
+      accounts: [
+        { apiKey: '', realm: 'https://realm1.com' },
+        { apiKey: 'asdf', realm: 'https://realm2.com' },
+      ],
+    });
 
-  expect(auth).toEqual({
-    realm: 'https://realm1.com',
-    email: undefined,
-    apiKey: undefined,
+    expect(getPartialAuth(state)).toEqual(state.accounts[0]);
+  });
+});
+
+describe('getAuth', () => {
+  test('throws when no accounts', () => {
+    const state = deepFreeze({
+      accounts: [],
+    });
+
+    expect(() => {
+      getAuth(state);
+    }).toThrow();
+  });
+
+  test('throws when no API key', () => {
+    const state = deepFreeze({
+      accounts: [
+        { apiKey: '', realm: 'https://realm1.com' },
+        { apiKey: 'asdf', realm: 'https://realm2.com' },
+      ],
+    });
+
+    expect(() => {
+      getAuth(state);
+    }).toThrow();
   });
 });

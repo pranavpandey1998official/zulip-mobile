@@ -4,12 +4,9 @@ import { connect } from 'react-redux';
 import React, { PureComponent } from 'react';
 import { StyleSheet } from 'react-native';
 
-import type { Auth, Dispatch, GlobalState } from '../types';
+import type { Dispatch } from '../types';
 import { ZulipButton } from '../common';
-import { getAuth, getPushToken } from '../selectors';
-import { unregisterPush } from '../api';
-import { logErrorRemotely } from '../utils/logging';
-import { deleteTokenPush, navigateToAccountPicker } from '../actions';
+import { navigateToAccountPicker } from '../actions';
 
 const styles = StyleSheet.create({
   button: {
@@ -19,28 +16,12 @@ const styles = StyleSheet.create({
 });
 
 type Props = {|
-  auth: Auth,
   dispatch: Dispatch,
-  pushToken: string,
 |};
 
 class SwitchAccountButton extends PureComponent<Props> {
-  shutdownPUSH = async () => {
-    const { auth, dispatch, pushToken } = this.props;
-    if (pushToken !== '') {
-      try {
-        await unregisterPush(auth, pushToken);
-      } catch (e) {
-        logErrorRemotely(e, 'failed to unregister Push token');
-      }
-      dispatch(deleteTokenPush());
-    }
-  };
-
   switchAccount = () => {
-    const { dispatch } = this.props;
-    this.shutdownPUSH();
-    dispatch(navigateToAccountPicker());
+    this.props.dispatch(navigateToAccountPicker());
   };
 
   render() {
@@ -50,7 +31,4 @@ class SwitchAccountButton extends PureComponent<Props> {
   }
 }
 
-export default connect((state: GlobalState) => ({
-  auth: getAuth(state),
-  pushToken: getPushToken(state),
-}))(SwitchAccountButton);
+export default connect()(SwitchAccountButton);

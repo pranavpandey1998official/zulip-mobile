@@ -1,11 +1,11 @@
 /* @flow strict-local */
-import type { DraftState, DraftsAction, DraftUpdateAction } from '../types';
+import type { DraftState, Action } from '../types';
 import { DRAFT_UPDATE, LOGOUT } from '../actionConstants';
 import { NULL_OBJECT } from '../nullObjects';
 
 const initialState = NULL_OBJECT;
 
-const draftUpdate = (state: DraftState, action: DraftUpdateAction): DraftState => {
+const draftUpdate = (state, action) => {
   const narrowStr = JSON.stringify(action.narrow);
 
   if (action.content.trim().length === 0) {
@@ -21,7 +21,7 @@ const draftUpdate = (state: DraftState, action: DraftUpdateAction): DraftState =
   return state[narrowStr] === action.content ? state : { ...state, [narrowStr]: action.content };
 };
 
-export default (state: DraftState = initialState, action: DraftsAction): DraftState => {
+export default (state: DraftState = initialState, action: Action): DraftState => {
   switch (action.type) {
     case LOGOUT:
       return initialState;

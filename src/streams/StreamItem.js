@@ -3,7 +3,7 @@ import React, { PureComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { Context } from '../types';
-import { BRAND_COLOR } from '../styles';
+import styles, { BRAND_COLOR } from '../styles';
 import { RawLabel, Touchable, UnreadCount, ZulipSwitch } from '../common';
 import { foregroundColorFromBackground } from '../utils/color';
 import StreamIcon from './StreamIcon';
@@ -67,7 +67,7 @@ export default class StreamItem extends PureComponent<Props> {
   };
 
   render() {
-    const { styles } = this.context;
+    const { styles: contextStyles } = this.context;
     const {
       name,
       description,
@@ -93,14 +93,14 @@ export default class StreamItem extends PureComponent<Props> {
       : color
         || foregroundColorFromBackground(
           backgroundColor
-            || (StyleSheet.flatten(styles.backgroundColor) || {}).backgroundColor
+            || (StyleSheet.flatten(contextStyles.backgroundColor) || {}).backgroundColor
             || null,
         );
     const textColorStyle = isSelected
       ? { color: 'white' }
       : backgroundColor
         ? { color: (foregroundColorFromBackground(backgroundColor): string) }
-        : styles.color;
+        : contextStyles.color;
 
     return (
       <Touchable onPress={this.handlePress}>

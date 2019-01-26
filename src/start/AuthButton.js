@@ -1,8 +1,8 @@
 /* @flow */
 import React, { PureComponent } from 'react';
 
-import type { Context } from '../types';
 import { ZulipButton } from '../common';
+import styles from '../styles';
 
 type Props = {|
   name: string,
@@ -11,14 +11,7 @@ type Props = {|
 |};
 
 export default class AuthButton extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   render() {
-    const { styles } = this.context;
     const { name, Icon, onPress } = this.props;
 
     return (

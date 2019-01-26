@@ -97,7 +97,7 @@ hr {
 }
 .timestamp {
   color: #999;
-  font-size: 14px;
+  font-size: 0.9em;
   white-space: nowrap;
 }
 .message {
@@ -192,7 +192,7 @@ hr {
   width: 2em;
   height: 2em;
   margin-right: 1em;
-  border-radius: 4px;
+  border-radius: 3px;
   background: rgba(127, 127, 127, 0.9);
 }
 .loading-content {
@@ -286,12 +286,12 @@ blockquote {
 .twitter-tweet {
   border: 2px solid rgba(29, 161, 242, 0.5);
   background: rgba(29, 161, 242, 0.1);
-  border-radius: 0.25em;
+  border-radius: 6px;
   padding: 0.5em 1em;
   margin: 0.5em 0;
 }
 .twitter-avatar {
-  border-radius: 0.25em;
+  border-radius: 3px;
   margin: 0.4em 0.4em 0.2em 0;
   float: left;
   width: 2.2em;
@@ -304,12 +304,12 @@ blockquote {
 .message-tags {
   text-align: right;
   margin: 0.25em 0;
-  font-size: 10px;
+  font-size: 0.7em;
 }
 .message-tag {
   padding: 0.25em 0.5em;
   margin-left: 4;
-  border-radius: 2px;
+  border-radius: 3px;
   color: rgba(127, 127, 127, 0.75);
   background: rgba(0, 0, 0, 0.1);
 }
@@ -320,7 +320,7 @@ blockquote {
   color: rgba(127, 127, 127, 1);
   display: inline-block;
   padding: 5px 6.5px;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid rgba(127, 127, 127, 0.75);
   line-height: 1em;
   height: 1em;
@@ -400,14 +400,13 @@ blockquote {
   width: 100%;
   background: red;
   color: white;
-  font-size: 10px;
+  font-size: 0.7em;
 }
 #js-error-plain, #js-error-plain-dummy {
   z-index: 1000;
   width: 100%;
   background: red;
   color: white;
-  font-size: 15px;
   padding: 4px;
   text-align: center;
 }

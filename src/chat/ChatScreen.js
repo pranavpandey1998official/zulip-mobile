@@ -1,6 +1,6 @@
 /* @flow strict-local */
 import React, { PureComponent } from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import type { NavigationScreenProp } from 'react-navigation';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
@@ -19,6 +19,13 @@ type Props = {|
   },
 |};
 
+const componentStyles = StyleSheet.create({
+  /** A workaround for #3089, by letting us put Chat (with MessageList) first. */
+  reverse: {
+    flexDirection: 'column-reverse',
+  },
+});
+
 export default class ChatScreen extends PureComponent<Props> {
   context: Context;
 
@@ -27,16 +34,16 @@ export default class ChatScreen extends PureComponent<Props> {
   };
 
   render() {
-    const { styles } = this.context;
+    const { styles: contextStyles } = this.context;
     const { narrow } = this.props.navigation.state.params;
 
     return (
       <ActionSheetProvider>
-        <View style={styles.screen}>
-          <ZulipStatusBar narrow={narrow} />
-          <ChatNavBar narrow={narrow} />
-          <OfflineNotice />
+        <View style={[contextStyles.screen, componentStyles.reverse]}>
           <Chat narrow={narrow} />
+          <OfflineNotice />
+          <ChatNavBar narrow={narrow} />
+          <ZulipStatusBar narrow={narrow} />
         </View>
       </ActionSheetProvider>
     );

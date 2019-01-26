@@ -1,8 +1,8 @@
 /* @flow strict-local */
 import React, { PureComponent } from 'react';
 
-import type { Context, Style } from '../types';
-import { BRAND_COLOR } from '../styles';
+import type { Style } from '../types';
+import styles, { BRAND_COLOR } from '../styles';
 import ComponentWithOverlay from '../common/ComponentWithOverlay';
 import UnreadCount from '../common/UnreadCount';
 import Icon from '../common/Icons';
@@ -16,19 +16,12 @@ type Props = {|
 |};
 
 export default class NavButton extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   static defaultProps = {
     color: BRAND_COLOR,
     unreadCount: 0,
   };
 
   render() {
-    const { styles } = this.context;
     const { name, style, color, unreadCount, onPress } = this.props;
 
     return (

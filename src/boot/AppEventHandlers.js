@@ -13,20 +13,14 @@ import type {
   Orientation as OrientationT,
   UserIdMap,
 } from '../types';
-import { getSession, getUnreadByHuddlesMentionsAndPMs, getUsersById } from '../selectors';
-import {
-  addNotificationListener,
-  removeNotificationListener,
-  handlePendingNotifications,
-  handleInitialNotification,
-} from '../utils/notifications';
+import { getUnreadByHuddlesMentionsAndPMs, getUsersById } from '../selectors';
+import { handleInitialNotification, NotificationListener } from '../notification';
 import {
   appOnline,
   appOrientation,
   appState,
   initSafeAreaInsets,
   reportPresence,
-  trySendMessages,
 } from '../actions';
 
 const componentStyles = StyleSheet.create({
@@ -38,7 +32,6 @@ const componentStyles = StyleSheet.create({
 });
 
 type Props = {|
-  needsInitialFetch: boolean,
   dispatch: Dispatch,
   children: ChildrenArray<*>,
   unreadCount: number,
@@ -52,12 +45,9 @@ class AppEventHandlers extends PureComponent<Props> {
   };
 
   handleConnectivityChange = connectionInfo => {
-    const { dispatch, needsInitialFetch } = this.props;
+    const { dispatch } = this.props;
     const isConnected = connectionInfo.type !== 'none' && connectionInfo.type !== 'unknown';
     dispatch(appOnline(isConnected));
-    if (!needsInitialFetch && isConnected) {
-      dispatch(trySendMessages());
-    }
   };
 
   handleAppStateChange = state => {
@@ -69,10 +59,7 @@ class AppEventHandlers extends PureComponent<Props> {
     }
   };
 
-  handleNotificationOpen = (notification: Object) => {
-    const { dispatch, usersById } = this.props;
-    handlePendingNotifications(notification, dispatch, usersById);
-  };
+  notificationListener = new NotificationListener(this.props.dispatch, this.props.usersById);
 
   handleMemoryWarning = () => {
     // Release memory here
@@ -90,7 +77,7 @@ class AppEventHandlers extends PureComponent<Props> {
     );
     // $FlowFixMe: libdef wrongly says callback's parameter is optional
     Orientation.addOrientationListener(this.handleOrientationChange);
-    addNotificationListener(this.handleNotificationOpen);
+    this.notificationListener.start();
   }
 
   componentWillUnmount() {
@@ -99,7 +86,7 @@ class AppEventHandlers extends PureComponent<Props> {
     AppState.removeEventListener('memoryWarning', this.handleMemoryWarning);
     // $FlowFixMe: libdef wrongly says callback's parameter is optional
     Orientation.removeOrientationListener(this.handleOrientationChange);
-    removeNotificationListener(this.handleNotificationOpen);
+    this.notificationListener.stop();
   }
 
   render() {
@@ -108,7 +95,6 @@ class AppEventHandlers extends PureComponent<Props> {
 }
 
 export default connect((state: GlobalState) => ({
-  needsInitialFetch: getSession(state).needsInitialFetch,
   usersById: getUsersById(state),
   unreadCount: getUnreadByHuddlesMentionsAndPMs(state),
 }))(AppEventHandlers);

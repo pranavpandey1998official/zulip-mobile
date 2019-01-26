@@ -1,10 +1,11 @@
 /* @flow */
-import { applyMiddleware, compose } from 'redux';
+import { applyMiddleware, compose, createStore } from 'redux';
+import type { Store } from 'redux';
 import { persistStore, autoRehydrate } from 'redux-persist';
 import type { Config } from 'redux-persist';
 import { AsyncStorage } from 'react-native';
 
-import Reactotron from './ReactotronConfig';
+import type { Action } from '../types';
 import rootReducer from './reducers';
 import middleware from './middleware';
 import ZulipAsyncStorage from './ZulipAsyncStorage';
@@ -61,6 +62,34 @@ const migrations = {
     messages: {},
     narrows: {},
   }),
+  '2': state => ({
+    ...state,
+    realm: {
+      ...state.realm,
+      pushToken: {
+        token: state.realm.pushToken.token,
+        // Drop `result` and `msg`.
+      },
+    },
+  }),
+  '3': state => ({
+    ...state,
+    realm: {
+      ...state.realm,
+      pushToken: {
+        // Previously we used an empty string here to mean "no value".
+        token: state.realm.pushToken.token || null,
+      },
+    },
+  }),
+  '4': state => {
+    const { pushToken, ...restRealm } = state.realm; // eslint-disable-line no-unused-vars
+    return {
+      ...state,
+      realm: restRealm,
+      accounts: state.accounts.map(a => ({ ...a, ackedPushToken: null })),
+    };
+  },
 };
 
 const reduxPersistConfig: Config = {
@@ -69,9 +98,7 @@ const reduxPersistConfig: Config = {
   storage: ZulipAsyncStorage,
 };
 
-const createStore = Reactotron ? Reactotron.createStore : require('redux').createStore;
-
-const store = createStore(
+const store: Store<*, Action> = createStore(
   rootReducer,
   undefined,
   compose(

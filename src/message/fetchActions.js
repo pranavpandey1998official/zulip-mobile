@@ -1,16 +1,5 @@
 /* @flow */
-import type {
-  Narrow,
-  Dispatch,
-  GetState,
-  GlobalState,
-  Message,
-  MessageFetchStartAction,
-  MessageFetchCompleteAction,
-  MarkMessagesReadAction,
-  InitialFetchStartAction,
-  InitialFetchCompleteAction,
-} from '../types';
+import type { Narrow, Dispatch, GetState, GlobalState, Message, Action } from '../types';
 import { getMessages, getStreams, registerForEvents, uploadFile } from '../api';
 import {
   getAuth,
@@ -19,6 +8,7 @@ import {
   getLastMessageId,
   getCaughtUpForActiveNarrow,
   getFetchingForActiveNarrow,
+  getTopMostNarrow,
 } from '../selectors';
 import config from '../config';
 import {
@@ -29,21 +19,17 @@ import {
   MARK_MESSAGES_READ,
 } from '../actionConstants';
 import { FIRST_UNREAD_ANCHOR, LAST_MESSAGE_ANCHOR } from '../constants';
-import timing from '../utils/timing';
 import { ALL_PRIVATE_NARROW } from '../utils/narrow';
 import { tryUntilSuccessful } from '../utils/async';
 import { getFetchedMessagesForNarrow } from '../chat/narrowsSelectors';
-import { addToOutbox, trySendMessages } from '../outbox/outboxActions';
-import { initNotifications, realmInit } from '../realm/realmActions';
+import { initNotifications } from '../notification/notificationActions';
+import { addToOutbox, sendOutbox } from '../outbox/outboxActions';
+import { realmInit } from '../realm/realmActions';
 import { initStreams } from '../streams/streamsActions';
 import { reportPresence } from '../users/usersActions';
 import { startEventPolling } from '../events/eventActions';
 
-export const messageFetchStart = (
-  narrow: Narrow,
-  numBefore: number,
-  numAfter: number,
-): MessageFetchStartAction => ({
+export const messageFetchStart = (narrow: Narrow, numBefore: number, numAfter: number): Action => ({
   type: MESSAGE_FETCH_START,
   narrow,
   numBefore,
@@ -56,7 +42,7 @@ export const messageFetchComplete = (
   anchor: number,
   numBefore: number,
   numAfter: number,
-): MessageFetchCompleteAction => ({
+): Action => ({
   type: MESSAGE_FETCH_COMPLETE,
   messages,
   narrow,
@@ -73,7 +59,7 @@ export const fetchMessages = (
   useFirstUnread: boolean = false,
 ) => async (dispatch: Dispatch, getState: GetState) => {
   dispatch(messageFetchStart(narrow, numBefore, numAfter));
-  const messages = await getMessages(
+  const { messages } = await getMessages(
     getAuth(getState()),
     narrow,
     anchor,
@@ -96,7 +82,7 @@ export const fetchMessagesAroundAnchor = (narrow: Narrow, anchor: number) =>
 export const fetchMessagesAtFirstUnread = (narrow: Narrow) =>
   fetchMessages(narrow, 0, config.messagesPerRequest / 2, config.messagesPerRequest / 2, true);
 
-export const markMessagesRead = (messageIds: number[]): MarkMessagesReadAction => ({
+export const markMessagesRead = (messageIds: number[]): Action => ({
   type: MARK_MESSAGES_READ,
   messageIds,
 });
@@ -125,11 +111,11 @@ export const fetchNewer = (narrow: Narrow) => (dispatch: Dispatch, getState: Get
   }
 };
 
-export const initialFetchStart = (): InitialFetchStartAction => ({
+export const initialFetchStart = (): Action => ({
   type: INITIAL_FETCH_START,
 });
 
-export const initialFetchComplete = (): InitialFetchCompleteAction => ({
+export const initialFetchComplete = (): Action => ({
   type: INITIAL_FETCH_COMPLETE,
 });
 
@@ -157,48 +143,60 @@ export const fetchMessagesInNarrow = (
   }
 };
 
-export const fetchEssentialInitialData = () => async (dispatch: Dispatch, getState: GetState) => {
+export const fetchPrivateMessages = () => async (dispatch: Dispatch, getState: GetState) => {
+  const auth = getAuth(getState());
+  const { messages } = await tryUntilSuccessful(() =>
+    getMessages(auth, ALL_PRIVATE_NARROW, LAST_MESSAGE_ANCHOR, 100, 0),
+  );
+  dispatch(messageFetchComplete(messages, ALL_PRIVATE_NARROW, LAST_MESSAGE_ANCHOR, 100, 0));
+};
+
+export const fetchStreams = () => async (dispatch: Dispatch, getState: GetState) => {
+  const auth = getAuth(getState());
+  const { streams } = await tryUntilSuccessful(() => getStreams(auth));
+  dispatch(initStreams(streams));
+};
+
+const fetchTopMostNarrow = () => async (dispatch: Dispatch, getState: GetState) => {
+  // only fetch messages if chat screen is at the top of stack
+  // get narrow of top most chat screen in the stack
+  const narrow = getTopMostNarrow(getState());
+  if (narrow) {
+    dispatch(fetchMessagesInNarrow(narrow));
+  }
+};
+
+export const fetchInitialData = () => async (dispatch: Dispatch, getState: GetState) => {
   dispatch(initialFetchStart());
   const auth = getAuth(getState());
 
-  timing.start('Essential server data');
   const initData = await tryUntilSuccessful(() =>
-    registerForEvents(auth, config.trackServerEvents, config.serverDataOnStartup),
+    registerForEvents(auth, {
+      fetch_event_types: config.serverDataOnStartup,
+      apply_markdown: true,
+      include_subscribers: false,
+      client_gravatar: true,
+    }),
   );
-  timing.end('Essential server data');
 
   dispatch(realmInit(initData));
+  dispatch(fetchTopMostNarrow());
   dispatch(initialFetchComplete());
-
   dispatch(startEventPolling(initData.queue_id, initData.last_event_id));
-};
 
-export const fetchRestOfInitialData = () => async (dispatch: Dispatch, getState: GetState) => {
-  const auth = getAuth(getState());
-
-  timing.start('Rest of server data');
-  const [messages, streams] = await Promise.all([
-    await tryUntilSuccessful(() =>
-      getMessages(auth, ALL_PRIVATE_NARROW, LAST_MESSAGE_ANCHOR, 100, 0),
-    ),
-    await tryUntilSuccessful(() => getStreams(auth)),
-  ]);
-  timing.end('Rest of server data');
-
-  dispatch(messageFetchComplete(messages, ALL_PRIVATE_NARROW, LAST_MESSAGE_ANCHOR, 100, 0));
-  dispatch(initStreams(streams));
+  dispatch(fetchPrivateMessages());
+  dispatch(fetchStreams());
 
   const session = getSession(getState());
   if (session.lastNarrow) {
     dispatch(fetchMessagesInNarrow(session.lastNarrow));
   }
 
-  dispatch(trySendMessages());
+  dispatch(sendOutbox());
 };
 
 export const doInitialFetch = () => async (dispatch: Dispatch, getState: GetState) => {
-  dispatch(fetchEssentialInitialData());
-  dispatch(fetchRestOfInitialData());
+  dispatch(fetchInitialData());
 
   dispatch(initNotifications());
   dispatch(reportPresence());
@@ -210,8 +208,8 @@ export const uploadImage = (narrow: Narrow, uri: string, name: string) => async 
   getState: GetState,
 ) => {
   const auth = getAuth(getState());
-  const serverUri = await uploadFile(auth, uri, name);
-  const messageToSend = `[${name}](${serverUri})`;
+  const response = await uploadFile(auth, uri, name);
+  const messageToSend = `[${name}](${response.uri})`;
 
   dispatch(addToOutbox(narrow, messageToSend));
 };

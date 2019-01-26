@@ -1,14 +1,5 @@
 /* @flow strict-local */
-import type {
-  Account,
-  User,
-  Subscription,
-  Presence,
-  PresenceAggregated,
-  CaughtUp,
-  Fetching,
-  NavigationState,
-} from './types';
+import type { User, Subscription, CaughtUp, Fetching, NavigationState } from './types';
 
 export const nullFunction = () => {};
 
@@ -23,13 +14,6 @@ export const NULL_ARRAY = Object.freeze([]);
  *
  * Further changes to eliminate the remaining uses of these would be great.
  */
-
-/** DEPRECATED; don't add new uses.  See block comment above definition. */
-export const NULL_ACCOUNT: Account = {
-  apiKey: '',
-  email: '',
-  realm: '',
-};
 
 /** DEPRECATED; don't add new uses.  See block comment above definition. */
 export const NULL_USER: User = {
@@ -59,18 +43,6 @@ export const NULL_SUBSCRIPTION: Subscription = {
   is_old_stream: false,
   is_announcement_only: false,
   history_public_to_subscribers: false,
-};
-
-/** DEPRECATED; don't add new uses.  See block comment above definition. */
-export const NULL_PRESENCE_AGGREGATED: PresenceAggregated = {
-  client: '',
-  status: 'offline',
-  timestamp: 0,
-};
-
-/** DEPRECATED; don't add new uses.  See block comment above definition. */
-export const NULL_PRESENCE: Presence = {
-  aggregated: NULL_PRESENCE_AGGREGATED,
 };
 
 /** DEPRECATED; don't add new uses.  See block comment above definition. */

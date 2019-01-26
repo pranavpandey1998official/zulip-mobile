@@ -3,12 +3,13 @@ import { connect } from 'react-redux';
 
 import React, { PureComponent } from 'react';
 
-import type { Context, GlobalState } from '../types';
+import type { GlobalState } from '../types';
 import Touchable from './Touchable';
 import Label from './Label';
 import { getFullUrl } from '../utils/url';
 import openLink from '../utils/openLink';
 import { getCurrentRealm } from '../selectors';
+import styles from '../styles';
 
 type Props = {|
   label: string,
@@ -24,19 +25,12 @@ type Props = {|
  * @prop realm - Current realm. Used if the `href` property is relative.
  */
 class WebLink extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   handlePress = () => {
     const { realm, href } = this.props;
     openLink(getFullUrl(href, realm));
   };
 
   render() {
-    const { styles } = this.context;
     const { label } = this.props;
 
     return (

@@ -1,69 +1,8 @@
 /* @flow strict-local */
-import { Platform } from 'react-native';
 
-import type { Style } from '../types';
-import { BRAND_COLOR } from './';
+import { BRAND_COLOR } from './constants';
 
-export type ComposeBoxStyles = {
-  composeBox: Style,
-  composeText: Style,
-  composeTextInput: Style,
-  topicInput: Style,
-  composeSendButton: Style,
-  composeMenu: Style,
-  expandButton: Style,
-  composeMenuButton: Style,
-  disabledComposeBox: Style,
-  disabledComposeButton: Style,
-  disabledComposeText: Style,
-};
-
-type Props = {
-  color: string,
-  backgroundColor: string,
-  borderColor: string,
-};
-
-const inputMarginPadding = {
-  paddingHorizontal: 8,
-  ...Platform.select({
-    ios: {
-      paddingVertical: 8,
-    },
-    android: {
-      paddingVertical: 2,
-    },
-  }),
-};
-
-export default ({ color, backgroundColor, borderColor }: Props) => ({
-  composeBox: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(127, 127, 127, 0.1)',
-  },
-  composeText: {
-    flex: 1,
-    paddingVertical: 8,
-    justifyContent: 'center',
-  },
-  composeTextInput: {
-    borderWidth: 0,
-    borderRadius: 5,
-    backgroundColor,
-    color,
-    fontSize: 15,
-    ...inputMarginPadding,
-  },
-  topicInput: {
-    borderWidth: 0,
-    borderRadius: 5,
-    backgroundColor,
-    marginBottom: 8,
-    ...inputMarginPadding,
-  },
-  composeSendButton: {
-    padding: 8,
-  },
+export default {
   composeMenu: {
     flexDirection: 'row',
     overflow: 'hidden',
@@ -92,4 +31,4 @@ export default ({ color, backgroundColor, borderColor }: Props) => ({
     flex: 1,
     color: 'white',
   },
-});
+};

@@ -3,7 +3,7 @@ import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 import { connect } from 'react-redux';
 
-import type { Context, Dispatch, GlobalState, Stream, Subscription } from '../types';
+import type { Dispatch, GlobalState, Stream, Subscription } from '../types';
 import { delay } from '../utils/async';
 import { OptionRow, Screen, ZulipButton, OptionDivider } from '../common';
 import { getIsAdmin, getStreamFromId, getSubscriptionFromId } from '../selectors';
@@ -16,6 +16,7 @@ import {
   toggleStreamNotification,
   navigateToStreamSubscribers,
 } from '../actions';
+import styles from '../styles';
 
 type Props = {|
   dispatch: Dispatch,
@@ -25,12 +26,6 @@ type Props = {|
 |};
 
 class StreamScreen extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   handleTogglePinStream = (newValue: boolean) => {
     const { dispatch, stream } = this.props;
     dispatch(doTogglePinStream(stream.stream_id, newValue));
@@ -63,7 +58,6 @@ class StreamScreen extends PureComponent<Props> {
 
   render() {
     const { isAdmin, stream, subscription } = this.props;
-    const { styles } = this.context;
 
     return (
       <Screen title="Stream">

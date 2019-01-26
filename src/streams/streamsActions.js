@@ -1,16 +1,13 @@
 /* @flow */
-import type { GetState, Dispatch, Stream, InitStreamsAction } from '../types';
-import { createStream, updateStream, getStreams, toggleMuteStream, togglePinStream } from '../api';
+import type { GetState, Dispatch, Stream, Action } from '../types';
+import { createStream, updateStream, toggleMuteStream, togglePinStream } from '../api';
 import { INIT_STREAMS } from '../actionConstants';
 import { getAuth } from '../selectors';
 
-export const initStreams = (streams: Stream[]): InitStreamsAction => ({
+export const initStreams = (streams: Stream[]): Action => ({
   type: INIT_STREAMS,
   streams,
 });
-
-export const fetchStreams = () => async (dispatch: Dispatch, getState: GetState) =>
-  dispatch(initStreams(await getStreams(getAuth(getState()))));
 
 export const createNewStream = (
   name: string,

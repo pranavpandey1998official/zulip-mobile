@@ -4,11 +4,12 @@ import { connect } from 'react-redux';
 import React, { PureComponent } from 'react';
 import { ScrollView, Keyboard } from 'react-native';
 
-import type { ApiServerSettings, Context, Dispatch } from '../types';
+import type { ApiServerSettings, Dispatch } from '../types';
 import { ErrorMsg, Label, SmartUrlInput, Screen, ZulipButton } from '../common';
 import { isValidUrl } from '../utils/url';
 import { getServerSettings } from '../api';
 import { realmAdd, navigateToAuth } from '../actions';
+import styles from '../styles';
 
 type Props = {|
   dispatch: Dispatch,
@@ -23,7 +24,6 @@ type State = {|
 |};
 
 class RealmScreen extends PureComponent<Props, State> {
-  context: Context;
   state = {
     progress: false,
     realm: this.props.initialRealm,
@@ -31,10 +31,6 @@ class RealmScreen extends PureComponent<Props, State> {
   };
 
   scrollView: ScrollView;
-
-  static contextTypes = {
-    styles: () => null,
-  };
 
   tryRealm = async () => {
     const { realm } = this.state;
@@ -69,7 +65,6 @@ class RealmScreen extends PureComponent<Props, State> {
   }
 
   render() {
-    const { styles } = this.context;
     const { initialRealm, navigation } = this.props;
     const { progress, error, realm } = this.state;
 

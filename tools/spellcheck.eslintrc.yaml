@@ -18,6 +18,8 @@ rules:
     skipWords:
     - abc
     - abcd
+    - ack
+    - acked
     - allen
     - api
     - apns
@@ -150,6 +152,7 @@ rules:
     - touchstart
     - truthy
     - tz
+    - unack
     - unicode
     - uniqby
     - unmount

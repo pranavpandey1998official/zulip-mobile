@@ -5,11 +5,11 @@ import React, { PureComponent } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 
 import type {
-  ChildrenArray,
   Context,
   Dimensions,
   GlobalState,
   LocalizableText,
+  React$Node,
   Style,
 } from '../types';
 import KeyboardAvoider from './KeyboardAvoider';
@@ -18,6 +18,7 @@ import ZulipStatusBar from './ZulipStatusBar';
 import { getSession } from '../selectors';
 import ModalNavBar from '../nav/ModalNavBar';
 import ModalSearchNavBar from '../nav/ModalSearchNavBar';
+import styles from '../styles';
 
 const componentStyles = StyleSheet.create({
   wrapper: {
@@ -35,36 +36,42 @@ const componentStyles = StyleSheet.create({
 });
 
 type Props = {|
-  autoFocus: boolean,
   centerContent: boolean,
-  children: ChildrenArray<*>,
+  children: React$Node,
   safeAreaInsets: Dimensions,
-  keyboardShouldPersistTaps?: 'never' | 'always' | 'handled',
+  keyboardShouldPersistTaps: 'never' | 'always' | 'handled',
   padding: boolean,
-  search: boolean,
-  title?: LocalizableText,
-  scrollEnabled?: boolean,
+  scrollEnabled: boolean,
   style?: Style,
-  searchBarOnChange?: (text: string) => void,
+
+  search: boolean,
+  autoFocus: boolean,
+  searchBarOnChange: (text: string) => void,
+
+  canGoBack: boolean,
+  title: LocalizableText,
 |};
 
 /**
- * A component representing a distinct screen of the app
- * ensuring consistent look-and-feel throughout.
- * It can control the status bar, can render a nav bar or
- * include a search input, center its contents, etc.
+ * Wrapper component for each screen of the app, for consistent look-and-feel.
  *
- * @prop [autoFocus] - If search bar enabled, should it be focused initially.
+ * Provides a nav bar, colors the status bar, can center the contents, etc.
+ * The `children` are ultimately wrapped in a `ScrollView` from upstream.
+ *
  * @prop [centerContent] - Should the contents be centered.
  * @prop children - Components to render inside the screen.
- * @prop safeAreaInsets - Supports safe area edge offsetting. Google 'iOS Safe Area'.
- * @prop [keyboardShouldPersistTaps] - Sets the same prop value to the internal
- *   ScrollView component.
+ * @prop [keyboardShouldPersistTaps] - Passed through to ScrollView.
  * @prop [padding] - Should padding be added to the contents of the screen.
+ * @prop [scrollEnabled] - Passed through to ScrollView.
+ * @prop [style] - Additional style for the ScrollView.
+ *
  * @prop [search] - If 'true' show a search box in place of the title.
+ * @prop [autoFocus] - If search bar enabled, should it be focused initially.
+ * @prop [searchBarOnChange] - Event called on search query change.
+ *
+ * @prop [canGoBack] - If true (the default), show UI for "navigate back".
  * @prop [title] - Text shown as the title of the screen.
- * @prop [style] - Additional style for the wrapper container.
- * @prop searchBarOnChange - Event called on search query change.
+ *                 Required unless `search` is true.
  */
 class Screen extends PureComponent<Props> {
   context: Context;
@@ -74,17 +81,23 @@ class Screen extends PureComponent<Props> {
   };
 
   static defaultProps = {
-    autoFocus: false,
     centerContent: false,
     keyboardShouldPersistTaps: 'handled',
     padding: false,
     scrollEnabled: true,
+
     search: false,
+    autoFocus: false,
+    searchBarOnChange: (text: string) => {},
+
+    canGoBack: true,
+    title: '',
   };
 
   render() {
     const {
       autoFocus,
+      canGoBack,
       centerContent,
       children,
       keyboardShouldPersistTaps,
@@ -96,16 +109,15 @@ class Screen extends PureComponent<Props> {
       style,
       title,
     } = this.props;
-    const { styles } = this.context;
+    const { styles: contextStyles } = this.context;
 
     return (
-      <View style={[styles.screen, { marginBottom: safeAreaInsets.bottom }]}>
-        {/* $FlowFixMe-56 Cannot create ZulipStatusBar element because ST is not a React component. */}
+      <View style={[contextStyles.screen, { paddingBottom: safeAreaInsets.bottom }]}>
         <ZulipStatusBar />
         {search ? (
           <ModalSearchNavBar autoFocus={autoFocus} searchBarOnChange={searchBarOnChange} />
         ) : (
-          <ModalNavBar title={title} />
+          <ModalNavBar canGoBack={canGoBack} title={title} />
         )}
         <OfflineNotice />
         <KeyboardAvoider

@@ -2,11 +2,6 @@
 import { createSelector } from 'reselect';
 
 import type { GlobalState, NavigationState } from '../types';
-import config from '../config';
-import { navigateToChat } from './navActions';
-import { getUsersById } from '../users/userSelectors';
-import AppNavigator from './AppNavigator';
-import { getNarrowFromNotificationData } from '../utils/notifications';
 
 export const getNav = (state: GlobalState): NavigationState => state.nav;
 
@@ -28,6 +23,18 @@ export const getChatScreenParams = createSelector(
   params => params || { narrow: undefined },
 );
 
+export const getTopMostNarrow = createSelector(getNav, nav => {
+  const { routes } = nav;
+  let { index } = nav;
+  while (index >= 0) {
+    if (routes[index].routeName === 'chat') {
+      return routes[index].params.narrow;
+    }
+    index--;
+  }
+  return undefined;
+});
+
 export const getCanGoBack = (state: GlobalState) => state.nav.index > 0;
 
 export const getSameRoutesCount = createSelector(getNav, nav => {
@@ -39,23 +46,4 @@ export const getSameRoutesCount = createSelector(getNav, nav => {
     i--;
   }
   return nav.routes.length - i - 1;
-});
-
-export const getStateForRoute = (route: string, params?: Object) => {
-  const action = AppNavigator.router.getActionForPathAndParams(route, params);
-  return action != null ? AppNavigator.router.getStateForAction(action) : null;
-};
-
-export const getInitialNavState = createSelector(getNav, getUsersById, (nav, usersById) => {
-  const state =
-    !nav || (nav.routes.length === 1 && nav.routes[0].routeName === 'loading')
-      ? getStateForRoute('main')
-      : nav;
-
-  if (!config.startup.notification) {
-    return state;
-  }
-
-  const narrow = getNarrowFromNotificationData(config.startup.notification, usersById);
-  return AppNavigator.router.getStateForAction(navigateToChat(narrow), state);
 });

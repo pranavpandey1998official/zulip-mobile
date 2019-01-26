@@ -10,10 +10,7 @@ import type {
   Narrow,
   Outbox,
   User,
-  DeleteOutboxMessageAction,
-  MessageSendStartAction,
-  MessageSendCompleteAction,
-  ToggleOutboxSendingAction,
+  Action,
 } from '../types';
 import {
   MESSAGE_SEND_START,
@@ -26,37 +23,34 @@ import { sendMessage } from '../api';
 import { getSelfUserDetail } from '../users/userSelectors';
 import { getUserByEmail, getUsersAndWildcards } from '../users/userHelpers';
 import { isStreamNarrow, isPrivateOrGroupNarrow } from '../utils/narrow';
+import progressiveTimeout from '../utils/progressiveTimeout';
 
-export const messageSendStart = (outbox: Outbox): MessageSendStartAction => ({
+export const messageSendStart = (outbox: Outbox): Action => ({
   type: MESSAGE_SEND_START,
   outbox,
 });
 
-export const toggleOutboxSending = (sending: boolean): ToggleOutboxSendingAction => ({
+export const toggleOutboxSending = (sending: boolean): Action => ({
   type: TOGGLE_OUTBOX_SENDING,
   sending,
 });
 
-export const deleteOutboxMessage = (localMessageId: number): DeleteOutboxMessageAction => ({
+export const deleteOutboxMessage = (localMessageId: number): Action => ({
   type: DELETE_OUTBOX_MESSAGE,
   local_message_id: localMessageId,
 });
 
-export const messageSendComplete = (localMessageId: number): MessageSendCompleteAction => ({
+export const messageSendComplete = (localMessageId: number): Action => ({
   type: MESSAGE_SEND_COMPLETE,
   local_message_id: localMessageId,
 });
 
-export const trySendMessages = () => (dispatch: Dispatch, getState: GetState) => {
+export const trySendMessages = (dispatch: Dispatch, getState: GetState): boolean => {
   const state = getState();
-  if (state.outbox.length === 0 || state.session.outboxSending) {
-    return;
-  }
-  dispatch(toggleOutboxSending(true));
   const auth = getAuth(state);
   const outboxToSend = state.outbox.filter(outbox => !outbox.isSent);
-  outboxToSend.forEach(async item => {
-    try {
+  try {
+    outboxToSend.forEach(async item => {
       await sendMessage(
         auth,
         item.type,
@@ -67,10 +61,23 @@ export const trySendMessages = () => (dispatch: Dispatch, getState: GetState) =>
         state.session.eventQueueId,
       );
       dispatch(messageSendComplete(item.timestamp));
-    } catch (e) {
-      logErrorRemotely(e, 'error caught while sending');
-    }
-  });
+    });
+    return true;
+  } catch (e) {
+    logErrorRemotely(e, 'error caught while sending');
+    return false;
+  }
+};
+
+export const sendOutbox = () => async (dispatch: Dispatch, getState: GetState) => {
+  const state = getState();
+  if (state.outbox.length === 0 || state.session.outboxSending) {
+    return;
+  }
+  dispatch(toggleOutboxSending(true));
+  while (!trySendMessages(dispatch, getState)) {
+    await progressiveTimeout(); // eslint-disable-line no-await-in-loop
+  }
   dispatch(toggleOutboxSending(false));
 };
 
@@ -140,5 +147,5 @@ export const addToOutbox = (narrow: Narrow, content: string) => async (
       reactions: [],
     }),
   );
-  dispatch(trySendMessages());
+  dispatch(sendOutbox());
 };

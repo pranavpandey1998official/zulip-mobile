@@ -2,9 +2,10 @@
 import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 
-import type { Context, Narrow } from '../types';
+import type { Narrow } from '../types';
 import { Label } from '../common';
 import Icon from '../common/Icons';
+import styles from '../styles';
 
 const specials = {
   home: { name: 'All messages', icon: 'home' },
@@ -19,14 +20,7 @@ type Props = {|
 |};
 
 export default class TitleSpecial extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   render() {
-    const { styles } = this.context;
     const { narrow, color } = this.props;
     const { name, icon } = specials[narrow[0].operand];
 

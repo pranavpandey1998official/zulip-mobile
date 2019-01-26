@@ -2,10 +2,9 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 
-import type { Context } from '../types';
 import Input from './Input';
 import type { Props as InputProps } from './Input';
-import { BRAND_COLOR } from '../styles';
+import styles, { BRAND_COLOR } from '../styles';
 import Icon from './Icons';
 
 const componentStyles = StyleSheet.create({
@@ -29,16 +28,11 @@ type State = {|
  * All props are passed through to `Input`.  See `Input` for descriptions.
  */
 export default class InputWithClearButton extends PureComponent<Props, State> {
-  context: Context;
   state = {
     canBeCleared: false,
     text: '',
   };
   textInput: ?TextInput;
-
-  static contextTypes = {
-    styles: () => null,
-  };
 
   handleChangeText = (text: string) => {
     this.setState({
@@ -58,7 +52,6 @@ export default class InputWithClearButton extends PureComponent<Props, State> {
   };
 
   render() {
-    const { styles } = this.context;
     const { canBeCleared, text } = this.state;
 
     return (

@@ -1,71 +1,29 @@
 /* @flow strict-local */
-import type {
-  Auth,
-  GetState,
-  Dispatch,
-  RealmFilter,
-  InitialData,
-  RealmEmojiState,
-  RealmInitAction,
-  DeleteTokenPushAction,
-  SaveTokenPushAction,
-  InitRealmEmojiAction,
-  InitRealmFilterAction,
-} from '../types';
-import { initializeNotifications, refreshNotificationToken } from '../utils/notifications';
-import { getAuth, getPushToken } from '../selectors';
+import type { Auth, Dispatch, RealmFilter, InitialData, RealmEmojiState, Action } from '../types';
 import { getRealmEmojis, getRealmFilters } from '../api';
-import {
-  REALM_INIT,
-  SAVE_TOKEN_PUSH,
-  DELETE_TOKEN_PUSH,
-  INIT_REALM_EMOJI,
-  INIT_REALM_FILTER,
-} from '../actionConstants';
+import { REALM_INIT, INIT_REALM_EMOJI, INIT_REALM_FILTER } from '../actionConstants';
 
-export const realmInit = (data: InitialData): RealmInitAction => ({
+export const realmInit = (data: InitialData): Action => ({
   type: REALM_INIT,
   data,
 });
 
-export const deleteTokenPush = (): DeleteTokenPushAction => ({
-  type: DELETE_TOKEN_PUSH,
-});
-
-export const saveTokenPush = (
-  pushToken: string,
-  result: string,
-  msg: string,
-): SaveTokenPushAction => ({
-  type: SAVE_TOKEN_PUSH,
-  pushToken,
-  result,
-  msg,
-});
-
-export const initNotifications = () => (dispatch: Dispatch, getState: GetState) => {
-  const auth = getAuth(getState());
-  const pushToken = getPushToken(getState());
-  if (auth.apiKey !== '' && (pushToken === '' || pushToken === undefined)) {
-    refreshNotificationToken();
-  }
-  initializeNotifications(auth, (token, msg, result) => {
-    dispatch(saveTokenPush(token, result, msg));
-  });
-};
-
-export const initRealmEmojis = (emojis: RealmEmojiState): InitRealmEmojiAction => ({
+export const initRealmEmojis = (emojis: RealmEmojiState): Action => ({
   type: INIT_REALM_EMOJI,
   emojis,
 });
 
-export const fetchRealmEmojis = (auth: Auth) => async (dispatch: Dispatch) =>
-  dispatch(initRealmEmojis(await getRealmEmojis(auth)));
+export const fetchRealmEmojis = (auth: Auth) => async (dispatch: Dispatch) => {
+  const { emoji } = await getRealmEmojis(auth);
+  dispatch(initRealmEmojis(emoji));
+};
 
-export const initRealmFilters = (filters: RealmFilter[]): InitRealmFilterAction => ({
+export const initRealmFilters = (filters: RealmFilter[]): Action => ({
   type: INIT_REALM_FILTER,
   filters,
 });
 
-export const fetchRealmFilters = (auth: Auth) => async (dispatch: Dispatch) =>
-  dispatch(initRealmFilters(await getRealmFilters(auth)));
+export const fetchRealmFilters = (auth: Auth) => async (dispatch: Dispatch) => {
+  const { filters } = await getRealmFilters(auth);
+  dispatch(initRealmFilters(filters));
+};

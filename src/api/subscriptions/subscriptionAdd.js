@@ -6,12 +6,13 @@ type SubscriptionObj = {|
   name: string,
 |};
 
+/** See https://zulipchat.com/api/add-subscriptions */
 export default (
   auth: Auth,
   subscriptions: SubscriptionObj[],
   principals?: string[],
 ): Promise<ApiResponse> =>
-  apiPost(auth, 'users/me/subscriptions', res => res, {
+  apiPost(auth, 'users/me/subscriptions', {
     subscriptions: JSON.stringify(subscriptions),
     principals: JSON.stringify(principals),
   });

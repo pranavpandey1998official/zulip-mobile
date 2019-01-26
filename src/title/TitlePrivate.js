@@ -4,27 +4,21 @@ import { connect } from 'react-redux';
 import React, { PureComponent } from 'react';
 import { Text, View } from 'react-native';
 
-import type { Context, Presence, User } from '../types';
+import type { UserPresence, User } from '../types';
 import { Avatar, ViewPlaceholder } from '../common';
 import ActivityText from './ActivityText';
 import { getPresence } from '../directSelectors';
 import { getAllUsersByEmail } from '../users/userSelectors';
+import styles from '../styles';
 
 type Props = {
   user: User,
   color: string,
-  presence: Presence,
+  presence: UserPresence,
 };
 
 class TitlePrivate extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   render() {
-    const { styles } = this.context;
     const { user, color, presence } = this.props;
 
     return (

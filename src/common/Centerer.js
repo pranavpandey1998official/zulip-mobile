@@ -2,7 +2,8 @@
 import React, { PureComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { Context, React$Node, Style } from '../types';
+import type { React$Node, Style } from '../types';
+import styles from '../styles';
 
 const componentStyles = StyleSheet.create({
   centerer: {
@@ -32,18 +33,11 @@ type Props = {|
  * @prop [padding] - Specifies if the components should be padded.
  */
 export default class Centerer extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   static defaultProps = {
     padding: false,
   };
 
   render() {
-    const { styles } = this.context;
     const { children, padding, style } = this.props;
 
     return (

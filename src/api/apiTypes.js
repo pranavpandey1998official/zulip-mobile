@@ -1,6 +1,8 @@
 /* @flow strict-local */
 import type { PresenceState } from '../types';
 
+export type * from './eventTypes';
+
 export type Auth = {|
   realm: string,
   apiKey: string,
@@ -47,6 +49,34 @@ export type Reaction = $ReadOnly<{|
   emoji_code: string,
 |}>;
 
+/**
+ * "Snapshot" objects from https://zulipchat.com/api/get-message-history .
+ *
+ * See also `MessageEdit`.
+ */
+export type MessageSnapshot = $ReadOnly<{|
+  user_id: number,
+  timestamp: number,
+
+  /** Docs unclear but suggest absent if only content edited. */
+  topic?: string,
+
+  /**
+   * Docs unclear, but suggest these five absent if only topic edited.
+   * They definitely say "prev"/"diff" properties absent on the first snapshot.
+   */
+  content?: string,
+  rendered_content?: string,
+  prev_content?: string,
+  prev_rendered_content?: string,
+  content_html_diff?: string,
+|}>;
+
+/**
+ * Found in the history within a `Message` object.
+ *
+ * See also `MessageSnapshot`.
+ */
 export type MessageEdit = $ReadOnly<{|
   prev_content?: string,
   prev_rendered_content?: string,
@@ -263,10 +293,11 @@ export type ApiResponseError = {|
   result: 'error',
 |};
 
-export type ApiResponseWithPresence = ApiResponse & {
+export type ApiResponseWithPresence = {|
+  ...ApiResponse,
   server_timestamp: number,
   presences: PresenceState,
-};
+|};
 
 export type AuthenticationMethods = {|
   dev: boolean,
@@ -291,3 +322,16 @@ export type ApiServerSettings = {|
 |};
 
 export type TypingOperation = 'start' | 'stop';
+
+/** See https://zulipchat.com/api/get-profile */
+export type UserProfile = {|
+  client_id: string,
+  email: string,
+  full_name: string,
+  is_admin: boolean,
+  is_bot: boolean,
+  max_message_id: number,
+  pointer: number,
+  short_name: string,
+  user_id: number,
+|};

@@ -2,9 +2,9 @@
 import React, { PureComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { Context } from '../types';
 import { IconPeople } from '../common/Icons';
 import { RawLabel, Touchable } from '../common';
+import styles from '../styles';
 
 const componentStyles = StyleSheet.create({
   text: {
@@ -26,19 +26,12 @@ type Props = {|
 |};
 
 export default class UserGroupItem extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   handlePress = () => {
     const { name, onPress } = this.props;
     onPress(name);
   };
 
   render() {
-    const { styles } = this.context;
     const { name, description } = this.props;
 
     return (

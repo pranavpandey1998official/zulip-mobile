@@ -2,9 +2,9 @@
 import React, { PureComponent } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { Context, Presence } from '../types';
+import type { UserPresence } from '../types';
 import { Avatar, RawLabel, Touchable, UnreadCount } from '../common';
-import { BRAND_COLOR } from '../styles';
+import styles, { BRAND_COLOR } from '../styles';
 
 const componentStyles = StyleSheet.create({
   selectedRow: {
@@ -29,7 +29,7 @@ type Props = {|
   email: string,
   fullName: string,
   avatarUrl: ?string,
-  presence?: Presence,
+  presence?: UserPresence,
   isSelected: boolean,
   showEmail: boolean,
   unreadCount?: number,
@@ -37,12 +37,6 @@ type Props = {|
 |};
 
 export default class UserItem extends PureComponent<Props> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   static defaultProps = {
     isSelected: false,
     showEmail: false,
@@ -56,7 +50,6 @@ export default class UserItem extends PureComponent<Props> {
   };
 
   render() {
-    const { styles } = this.context;
     const { fullName, avatarUrl, presence, isSelected, unreadCount, showEmail, email } = this.props;
 
     return (

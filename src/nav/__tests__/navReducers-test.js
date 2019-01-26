@@ -1,8 +1,7 @@
 import deepFreeze from 'deep-freeze';
 
 import { LOGIN_SUCCESS, INITIAL_FETCH_COMPLETE, REHYDRATE } from '../../actionConstants';
-import navReducers from '../navReducers';
-import { getStateForRoute } from '../navSelectors';
+import navReducers, { getStateForRoute } from '../navReducers';
 import { NULL_OBJECT } from '../../nullObjects';
 
 describe('navReducers', () => {
@@ -61,7 +60,7 @@ describe('navReducers', () => {
       expect(nav.routes).toHaveLength(1);
     });
 
-    test('if logged in, preserve the state', () => {
+    test('if logged in, go to main screen', () => {
       const initialState = NULL_OBJECT;
 
       const action = deepFreeze({
@@ -69,18 +68,14 @@ describe('navReducers', () => {
         payload: {
           accounts: [{ apiKey: '123' }],
           users: [],
-          nav: {
-            routes: [{ routeName: 'route1' }, { routeName: 'route2' }],
-          },
           realm: {},
         },
       });
 
       const nav = navReducers(initialState, action);
 
-      expect(nav.routes).toHaveLength(2);
-      expect(nav.routes[0].routeName).toEqual('route1');
-      expect(nav.routes[1].routeName).toEqual('route2');
+      expect(nav.routes).toHaveLength(1);
+      expect(nav.routes[0].routeName).toEqual('main');
     });
 
     test('if not logged in, and no previous accounts, show welcome screen', () => {
@@ -91,9 +86,6 @@ describe('navReducers', () => {
         payload: {
           accounts: [],
           users: [],
-          nav: {
-            routes: [],
-          },
           realm: {},
         },
       });
@@ -110,11 +102,8 @@ describe('navReducers', () => {
       const action = deepFreeze({
         type: REHYDRATE,
         payload: {
-          accounts: [{}, {}],
+          accounts: [{ apiKey: '' }, { apiKey: '' }],
           users: [],
-          nav: {
-            routes: [],
-          },
           realm: {},
         },
       });
@@ -131,11 +120,8 @@ describe('navReducers', () => {
       const action = deepFreeze({
         type: REHYDRATE,
         payload: {
-          accounts: [{ realm: 'https://example.com' }],
+          accounts: [{ apiKey: '', realm: 'https://example.com' }],
           users: [],
-          nav: {
-            routes: [],
-          },
           realm: {},
         },
       });
@@ -153,13 +139,10 @@ describe('navReducers', () => {
         type: REHYDRATE,
         payload: {
           accounts: [
-            { realm: 'https://example.com', email: 'johndoe@example.com' },
-            { realm: 'https://example.com', email: 'janedoe@example.com' },
+            { apiKey: '', realm: 'https://example.com', email: 'johndoe@example.com' },
+            { apiKey: '', realm: 'https://example.com', email: 'janedoe@example.com' },
           ],
           users: [],
-          nav: {
-            routes: [],
-          },
           realm: {},
         },
       });
@@ -176,11 +159,8 @@ describe('navReducers', () => {
       const action = deepFreeze({
         type: REHYDRATE,
         payload: {
-          accounts: [{ realm: 'https://example.com', email: 'johndoe@example.com' }],
+          accounts: [{ apiKey: '', realm: 'https://example.com', email: 'johndoe@example.com' }],
           users: [],
-          nav: {
-            routes: [],
-          },
           realm: {},
         },
       });

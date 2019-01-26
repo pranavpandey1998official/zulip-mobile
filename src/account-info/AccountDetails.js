@@ -1,8 +1,8 @@
 /* @flow strict-local */
 import React, { PureComponent } from 'react';
-import { View, Dimensions } from 'react-native';
+import { View, Dimensions, StyleSheet } from 'react-native';
 
-import type { Dispatch, Context, Presence, User } from '../types';
+import type { Dispatch, UserPresence, User } from '../types';
 import { Avatar, ComponentList, RawLabel, ZulipButton } from '../common';
 import { IconPrivateChat } from '../common/Icons';
 import { privateNarrow } from '../utils/narrow';
@@ -11,27 +11,31 @@ import ActivityText from '../title/ActivityText';
 import { getMediumAvatar } from '../utils/avatar';
 import { nowInTimeZone } from '../utils/date';
 import { doNarrow } from '../actions';
+import styles from '../styles';
+
+const componentStyles = StyleSheet.create({
+  componentListItem: {
+    alignItems: 'center',
+  },
+  userStatusWrapper: {
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+});
 
 type Props = {|
   dispatch: Dispatch,
   user: User,
-  presence: Presence,
+  presence: UserPresence,
 |};
 
 export default class AccountDetails extends PureComponent<Props, void> {
-  context: Context;
-
-  static contextTypes = {
-    styles: () => null,
-  };
-
   handleChatPress = () => {
     const { user, dispatch } = this.props;
     dispatch(doNarrow(privateNarrow(user.email)));
   };
 
   render() {
-    const { styles } = this.context;
     const { user, presence } = this.props;
     const screenWidth = Dimensions.get('window').width;
 
@@ -44,8 +48,8 @@ export default class AccountDetails extends PureComponent<Props, void> {
           size={screenWidth}
           shape="square"
         />
-        <ComponentList outerSpacing itemStyle={[styles.row, styles.center]}>
-          <View>
+        <ComponentList outerSpacing itemStyle={componentStyles.componentListItem}>
+          <View style={componentStyles.userStatusWrapper}>
             <UserStatusIndicator presence={presence} hideIfOffline={false} />
             <RawLabel style={[styles.largerText, styles.halfMarginLeft]} text={user.email} />
           </View>
